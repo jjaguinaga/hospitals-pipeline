@@ -24,7 +24,7 @@ class DataExtractor:
    def extract_addmissions(self):
       return self._read_csv('admissions.csv')
    
-   def extact_appointments(self):
+   def extract_appointments(self):
       return self._read_csv('appointments.csv')
    
    def extract_billings(self):
