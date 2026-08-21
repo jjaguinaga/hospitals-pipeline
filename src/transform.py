@@ -142,3 +142,50 @@ class DataTransformer:
       df = df[~bad_insurance].copy()
       
       return df 
+   
+   def transform_appointments(self, df):
+      self.logger.info('Transforming appointments...')
+      
+      df = df.drop(columns=['satisfaction_score'], errors='ignore')
+      
+      df['appointment_date'] = df['appointment_date'].apply(self._parse_datetime)
+      
+      df['duration_minutes'] = df['duration_minutes'].replace(r'[^\d]', '', regex=True).astype(int)
+      
+      df['appointment_type'] = df['appointment_type'].str.lower()
+      
+      df['status'] = df['status'].str.lower()
+      
+      no_show = df['status'] == 'no-show'
+      
+      has_checkin = df['check_in_time'].notna()
+      
+      bad_noshow = no_show & has_checkin
+      
+      if bad_noshow.any():
+         self._save_quarantine(df[bad_noshow], 'appointments_bad_no_show')
+         
+      df = df[~bad_noshow].copy()
+      
+      no_status = df['status'].isna()
+      
+      if no_status.any():
+         self._save_quarantine(df[no_status], 'appointments_no_status')
+         
+      df = df[~no_status].copy()
+      
+      status_check = df['status'].isin(['completed', 'in progess'])
+      
+      null_checkin = df['check_in_time'].isna() & status_check
+      
+      null_wait = df['wait_time_minutes'].isna() & status_check
+      
+      bad_check_wait = null_checkin | null_wait
+      
+      if bad_check_wait.any():
+         self._save_quarantine(df[bad_check_wait], 'appointments_null_check_wait')
+         
+      df = df[~bad_check_wait].copy()
+      
+      return df
+   
